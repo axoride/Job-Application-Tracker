@@ -1,28 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
 import mysql.connector
-import os
 import json
-from dotenv import load_dotenv
-
-# Load database settings from .env
-load_dotenv()
+from database import get_db_connection
 
 # Create the Flask application
 app = Flask(__name__)
 
-
-# =========================================================
-# DATABASE CONNECTION
-# =========================================================
-
-def get_db_connection():
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        port=int(os.getenv("DB_PORT", 3306))
-    )
 
 
 # =========================================================
