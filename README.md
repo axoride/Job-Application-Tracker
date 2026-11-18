@@ -18,18 +18,27 @@ It uses Python/Flask, MySQL, and HTML/CSS, and includes a skills-based Job Match
 
 1. **Clone the repository and open the project folder.**
 
-2. **Install the dependencies:**
+2. **Create a virtual environment:**
+   ```
+   python -m venv .venv
+   ```
+3. **Activate the virtual environment"**
+   ```
+   venv\Scripts\activate
+   ```
+
+4. **Install the dependencies:**
    ```
    pip install -r requirements.txt
    ```
 
-3. **Create the database.** Run `schema.sql` in MySQL Workbench (File > Open SQL Script, then run it), or from the command line:
+5. **Create the database.** Run `schema.sql` in MySQL Workbench (File > Open SQL Script, then run it), or from the command line:
    ```
    mysql -u root -p < schema.sql
    ```
    This creates the `job_tracker` database and its 4 tables.
 
-4. **Create your `.env` file** in the project folder with your MySQL settings:
+6. **Create your `.env` file** in the project folder with your MySQL settings:
    ```
    DB_HOST=localhost
    DB_USER=root
@@ -39,12 +48,12 @@ It uses Python/Flask, MySQL, and HTML/CSS, and includes a skills-based Job Match
    ```
    Replace `your_mysql_password` with your own password.
 
-5. **Start the app:**
+7. **Start the app:**
    ```
    python app.py
    ```
 
-6. **Open** http://127.0.0.1:5000 in your browser.
+8. **Open** http://127.0.0.1:5000 in your browser.
 
 ## Using the App
 

@@ -160,14 +160,22 @@ def delete_company(company_id):
     connection = get_db_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        "DELETE FROM companies WHERE company_id = %s",
-        (company_id,)
-    )
-
-    connection.commit()
-    cursor.close()
-    connection.close()
+    try:
+        cursor.execute(
+            "DELETE FROM companies WHERE company_id = %s",
+            (company_id,)
+        )
+        connection.commit()
+    except mysql.connector.Error:
+        connection.rollback()
+        return (
+            "This company cannot be deleted because it still has jobs or "
+            "contacts linked to it. Delete those first.",
+            400
+        )
+    finally:
+        cursor.close()
+        connection.close()
 
     return redirect(url_for("companies"))
 
