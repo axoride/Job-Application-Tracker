@@ -11,7 +11,10 @@ load_dotenv()
 app = Flask(__name__)
 
 
-# Database connection
+# =========================================================
+# DATABASE CONNECTION
+# =========================================================
+
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
@@ -22,36 +25,62 @@ def get_db_connection():
     )
 
 
-# Validate job requirements JSON
-def get_requirements():
-    requirements = request.form.get("requirements", "[]").strip() or "[]"
+# =========================================================
+# DASHBOARD
+# =========================================================
 
-    try:
-        parsed_requirements = json.loads(requirements)
-
-        if not isinstance(parsed_requirements, list):
-            return None, "Requirements must be a JSON list, such as [\"Python\", \"SQL\"]."
-
-        return json.dumps(parsed_requirements), None
-
-    except json.JSONDecodeError:
-        return None, "Invalid JSON. Example: [\"Python\", \"SQL\", \"Flask\"]"
-
-
-# Dashboard page
 @app.route("/")
 def dashboard():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    cursor.execute("SELECT COUNT(*) AS count FROM applications")
-    stats = cursor.fetchone()
+    # Totals for each table
+    cursor.execute("""
+        SELECT
+            (SELECT COUNT(*) FROM companies)    AS companies,
+            (SELECT COUNT(*) FROM jobs)         AS jobs,
+            (SELECT COUNT(*) FROM applications) AS applications,
+            (SELECT COUNT(*) FROM contacts)     AS contacts
+    """)
+    totals = cursor.fetchone()
+
+    # Applications grouped by status
+    cursor.execute("""
+        SELECT status, COUNT(*) AS total
+        FROM applications
+        WHERE status IS NOT NULL
+        GROUP BY status
+    """)
+    status_counts = {status: 0 for status in APPLICATION_STATUSES}
+    for row in cursor.fetchall():
+        status_counts[row["status"]] = row["total"]
+
+    # Five most recent applications
+    cursor.execute("""
+        SELECT applications.application_date, applications.status,
+               jobs.job_title, companies.company_name
+        FROM applications
+        INNER JOIN jobs ON applications.job_id = jobs.job_id
+        INNER JOIN companies ON jobs.company_id = companies.company_id
+        ORDER BY applications.application_date DESC
+        LIMIT 5
+    """)
+    recent = cursor.fetchall()
 
     cursor.close()
     connection.close()
 
-    return render_template("dashboard.html", stats=stats)
+    return render_template(
+        "dashboard.html",
+        totals=totals,
+        status_counts=status_counts,
+        recent=recent
+    )
 
+
+# =========================================================
+# COMPANIES
+# =========================================================
 
 # Companies page
 @app.route("/companies")
@@ -141,6 +170,26 @@ def delete_company(company_id):
     connection.close()
 
     return redirect(url_for("companies"))
+
+
+# =========================================================
+# JOBS
+# =========================================================
+
+# Validate job requirements JSON
+def get_requirements():
+    requirements = request.form.get("requirements", "[]").strip() or "[]"
+
+    try:
+        parsed_requirements = json.loads(requirements)
+
+        if not isinstance(parsed_requirements, list):
+            return None, "Requirements must be a JSON list, such as [\"Python\", \"SQL\"]."
+
+        return json.dumps(parsed_requirements), None
+
+    except json.JSONDecodeError:
+        return None, "Invalid JSON. Example: [\"Python\", \"SQL\", \"Flask\"]"
 
 
 # Jobs page
@@ -300,6 +349,11 @@ def delete_job(job_id):
 
     return redirect(url_for("jobs"))
 
+
+# =========================================================
+# APPLICATIONS
+# =========================================================
+
 APPLICATION_STATUSES = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Withdrawn"]
 
 
@@ -456,6 +510,205 @@ def delete_application(application_id):
     return redirect(url_for("applications"))
 
 
-# Start the application
+# =========================================================
+# CONTACTS
+# =========================================================
+
+# Contacts page
+@app.route("/contacts")
+def contacts():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            contacts.contact_id,
+            contacts.company_id,
+            contacts.contact_name,
+            contacts.title,
+            contacts.email,
+            contacts.phone,
+            contacts.linkedin_url,
+            contacts.notes,
+            companies.company_name
+        FROM contacts
+        INNER JOIN companies ON contacts.company_id = companies.company_id
+        ORDER BY contacts.contact_name
+    """)
+    contacts = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT company_id, company_name
+        FROM companies
+        ORDER BY company_name
+    """)
+    companies = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    return render_template("contacts.html", contacts=contacts, companies=companies)
+
+
+# Add a new contact
+@app.route("/contacts/add", methods=["POST"])
+def add_contact():
+    company_id = request.form["company_id"]
+    contact_name = request.form["contact_name"].strip()
+    title = request.form.get("title", "").strip() or None
+    email = request.form.get("email", "").strip() or None
+    phone = request.form.get("phone", "").strip() or None
+    linkedin_url = request.form.get("linkedin_url", "").strip() or None
+    notes = request.form.get("notes", "").strip() or None
+
+    if not contact_name:
+        return "Contact name is required.", 400
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO contacts
+        (company_id, contact_name, title, email, phone, linkedin_url, notes)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (company_id, contact_name, title, email, phone, linkedin_url, notes))
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return redirect(url_for("contacts"))
+
+
+# Edit an existing contact
+@app.route("/contacts/edit/<int:contact_id>", methods=["POST"])
+def edit_contact(contact_id):
+    company_id = request.form["company_id"]
+    contact_name = request.form["contact_name"].strip()
+    title = request.form.get("title", "").strip() or None
+    email = request.form.get("email", "").strip() or None
+    phone = request.form.get("phone", "").strip() or None
+    linkedin_url = request.form.get("linkedin_url", "").strip() or None
+    notes = request.form.get("notes", "").strip() or None
+
+    if not contact_name:
+        return "Contact name is required.", 400
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE contacts
+        SET company_id = %s,
+            contact_name = %s,
+            title = %s,
+            email = %s,
+            phone = %s,
+            linkedin_url = %s,
+            notes = %s
+        WHERE contact_id = %s
+    """, (company_id, contact_name, title, email, phone,
+          linkedin_url, notes, contact_id))
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return redirect(url_for("contacts"))
+
+
+# Delete an existing contact
+@app.route("/contacts/delete/<int:contact_id>", methods=["POST"])
+def delete_contact(contact_id):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "DELETE FROM contacts WHERE contact_id = %s",
+        (contact_id,)
+    )
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+    return redirect(url_for("contacts"))
+
+
+# =========================================================
+# JOB MATCH
+# =========================================================
+
+@app.route("/job-match")
+def job_match():
+    raw_skills = request.args.get("skills", "").strip()
+    user_skills = [s.strip() for s in raw_skills.split(",") if s.strip()]
+    user_lower = {s.lower() for s in user_skills}
+
+    results = []
+
+    if user_skills:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT jobs.job_id, jobs.job_title, jobs.requirements,
+                   companies.company_name
+            FROM jobs
+            INNER JOIN companies ON jobs.company_id = companies.company_id
+        """)
+        jobs = cursor.fetchall()
+
+        cursor.close()
+        connection.close()
+
+        for job in jobs:
+            requirements = job["requirements"]
+
+            # MySQL returns JSON columns as text
+            try:
+                if isinstance(requirements, (str, bytes)):
+                    requirements = json.loads(requirements)
+            except json.JSONDecodeError:
+                continue
+
+            # Also accept the object format from Assignment 7
+            if isinstance(requirements, dict):
+                requirements = requirements.get("required_skills", [])
+
+            if not requirements:
+                continue
+
+            requirements = [str(r) for r in requirements]
+            matched = [r for r in requirements if r.lower() in user_lower]
+            missing = [r for r in requirements if r.lower() not in user_lower]
+
+            if not matched:
+                continue
+
+            results.append({
+                "job_title": job["job_title"],
+                "company_name": job["company_name"],
+                "matched": matched,
+                "missing": missing,
+                "total": len(requirements),
+                "percent": round(len(matched) / len(requirements) * 100)
+            })
+
+        # Best match first; ties go to more matched skills, then title
+        results.sort(key=lambda r: (-r["percent"], -len(r["matched"]), r["job_title"]))
+
+    return render_template(
+        "job_match.html",
+        skills=raw_skills,
+        user_skills=user_skills,
+        results=results
+    )
+
+
+# =========================================================
+# START THE APPLICATION
+# =========================================================
+
 if __name__ == "__main__":
     app.run(debug=True)
