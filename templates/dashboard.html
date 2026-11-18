@@ -4,13 +4,79 @@
 
 {% block content %}
 
+<section class="dash-hero">
     <h2>Dashboard</h2>
+    <p>Track your companies, job opportunities, applications, and contacts in one place.</p>
+</section>
 
-    <p>Welcome to your personal job application dashboard!</p>
+<div class="stat-grid">
+    <div class="stat-card">
+        <span class="stat-number">{{ totals.companies }}</span>
+        <span class="stat-label">Companies</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ totals.jobs }}</span>
+        <span class="stat-label">Jobs</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ totals.applications }}</span>
+        <span class="stat-label">Applications</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ totals.contacts }}</span>
+        <span class="stat-label">Contacts</span>
+    </div>
+</div>
 
-    <p>
-        Track your companies, job opportunities, applications,
-        and contacts in one place.
-    </p>
+<div class="dash-columns">
+
+    <section class="dash-panel">
+        <h3>Applications by Status</h3>
+
+        {% for status, total in status_counts.items() %}
+        {% set pct = (total / totals.applications * 100) | round if totals.applications else 0 %}
+        <div class="status-row">
+            <div class="status-row-top">
+                <span>{{ status }}</span>
+                <span>{{ total }}</span>
+            </div>
+            <div class="status-track">
+                <div class="status-fill status-{{ status | lower }}"
+                     style="width: {{ pct }}%;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="dash-panel">
+        <h3>Recent Applications</h3>
+
+        {% if recent %}
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>Job</th>
+                    <th>Company</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in recent %}
+                <tr>
+                    <td>{{ app.job_title }}</td>
+                    <td>{{ app.company_name }}</td>
+                    <td style="white-space: nowrap;">{{ app.application_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ app.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No applications yet.</p>
+        {% endif %}
+    </section>
+
+</div>
 
 {% endblock %}
