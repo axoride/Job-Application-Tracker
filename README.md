@@ -22,23 +22,30 @@ It uses Python/Flask, MySQL, and HTML/CSS, and includes a skills-based Job Match
    ```
    python -m venv .venv
    ```
-3. **Activate the virtual environment"**
+3. **If PowerShell blocks script execution, run this command:**
    ```
-   venv\Scripts\activate
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    ```
+   if prompted, Type Y and press Enter
 
-4. **Install the dependencies:**
+4. **Activate the virtual environment:**
+   ```
+   .\venv\Scripts\Activate.ps1
+   ```
+   // once activated, you should see (.venv) at the beginning of your powershell command line.
+
+5. **Install the dependencies:**
    ```
    pip install -r requirements.txt
    ```
 
-5. **Create the database.** Run `schema.sql` in MySQL Workbench (File > Open SQL Script, then run it), or from the command line:
+6. **Create the database.** Run `schema.sql` in MySQL Workbench (File > Open SQL Script, then run it), or from the command line:
    ```
    mysql -u root -p < schema.sql
    ```
    This creates the `job_tracker` database and its 4 tables.
 
-6. **Create your `.env` file** in the project folder with your MySQL settings:
+7. **Create your `.env` file** in the project folder with your MySQL settings:
    ```
    DB_HOST=localhost
    DB_USER=root
@@ -48,12 +55,12 @@ It uses Python/Flask, MySQL, and HTML/CSS, and includes a skills-based Job Match
    ```
    Replace `your_mysql_password` with your own password.
 
-7. **Start the app:**
+8. **Start the app:**
    ```
    python app.py
    ```
 
-8. **Open** http://127.0.0.1:5000 in your browser.
+9. **Open** http://127.0.0.1:5000 in your browser.
 
 ## Using the App
 
