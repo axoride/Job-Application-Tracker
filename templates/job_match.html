@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Job Match | Job Application Tracker{% endblock %}
+
+{% block content %}
+
+<h2>Job Match</h2>
+<p>Enter your skills, separated by commas, to see which jobs fit you best.</p>
+
+<form method="GET" action="{{ url_for('job_match') }}"
+      style="display: flex; gap: 12px; margin: 20px 0 30px;">
+    <input type="text" name="skills" value="{{ skills }}"
+           placeholder="Python, SQL, Flask"
+           style="flex: 1;" required>
+    <button type="submit">Find Matches</button>
+</form>
+
+{% if skills %}
+
+    <h3>Your Skills: {{ user_skills | join(", ") }}</h3>
+
+    {% if results %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Job</th>
+                <th>Company</th>
+                <th>Match</th>
+                <th>Missing Skills</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ r.job_title }}</td>
+                <td>{{ r.company_name }}</td>
+                <td style="white-space: nowrap;">
+                    {{ r.percent }}% ({{ r.matched | length }}/{{ r.total }} skills)
+                </td>
+                <td>{{ r.missing | join(", ") if r.missing else "None" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+    <p>No jobs matched those skills. Try different or additional skills.</p>
+    {% endif %}
+
+{% endif %}
+
+{% endblock %}
