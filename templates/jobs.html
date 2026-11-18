@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Jobs | Job Application Tracker{% endblock %}
+
+{% block content %}
+
+<h2>Jobs</h2>
+<p>Explore and manage job opportunities from your saved companies.</p>
+
+<!-- Add Job Section -->
+
+<details class="add-company-panel">
+    <summary class="btn">+ Add Job</summary>
+
+    <form method="POST" action="{{ url_for('add_job') }}" class="company-form">
+
+        <p>
+            <label>Job Title</label>
+            <input type="text" name="job_title" maxlength="100" required>
+        </p>
+
+        <p>
+            <label>Company</label>
+            <select name="company_id" required>
+                <option value="">Select a company</option>
+                {% for company in companies %}
+                <option value="{{ company.company_id }}">
+                    {{ company.company_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </p>
+
+        <p>
+            <label>Job Type</label>
+            <select name="job_type" required>
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Internship">Internship</option>
+            </select>
+        </p>
+
+        <p>
+            <label>Minimum Salary ($)</label>
+            <input type="number" name="salary_min" min="0">
+        </p>
+
+        <p>
+            <label>Maximum Salary ($)</label>
+            <input type="number" name="salary_max" min="0">
+        </p>
+
+        <p>
+            <label>Date Posted</label>
+            <input type="date" name="date_posted">
+        </p>
+
+        <p>
+            <label>Job URL</label>
+            <input type="url" name="job_url" maxlength="300">
+        </p>
+
+        <p class="notes-field">
+            <label>Requirements (JSON format)</label>
+            <textarea name="requirements" placeholder='["Python", "SQL", "Flask"]'>[]</textarea>
+        </p>
+
+        <div class="form-submit">
+            <button type="submit" class="btn">Save Job</button>
+        </div>
+
+    </form>
+</details>
+
+<!-- Jobs Table -->
+
+{% if jobs %}
+
+<table>
+    <thead>
+        <tr>
+            <th>Job Title</th>
+            <th>Company</th>
+            <th>Job Type</th>
+            <th>Salary Range</th>
+            <th>Date Posted</th>
+            <th>Job URL</th>
+            <th>Requirements</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for job in jobs %}
+
+        <!-- Job Information Row -->
+
+        <tr>
+            <td>{{ job.job_title }}</td>
+
+            <td>{{ job.company_name }}</td>
+
+            <td>{{ job.job_type }}</td>
+
+            <td style="white-space: nowrap;">
+                {% if job.salary_min is not none or job.salary_max is not none %}
+                    ${{ job.salary_min if job.salary_min is not none else "N/A" }} - ${{ job.salary_max if job.salary_max is not none else "N/A" }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+
+            <td>
+                {{ job.date_posted.strftime('%Y-%m-%d') if job.date_posted else "N/A" }}
+            </td>
+
+            <td>
+                {% if job.job_url %}
+                    <a href="{{ job.job_url }}" target="_blank" rel="noopener noreferrer">View Job</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+
+            <td>{{ job.requirements or "[]" }}</td>
+
+            <td>
+                <div class="company-actions">
+
+                    <button type="button"
+                            class="btn"
+                            id="edit-button-{{ job.job_id }}"
+                            onclick="toggleJobEdit({{ job.job_id }})">
+                        Edit
+                    </button>
+
+                    <form method="POST"
+                          action="{{ url_for('delete_job', job_id=job.job_id) }}"
+                          onsubmit="return confirm('Are you sure you want to delete this job?');">
+
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+
+                </div>
+            </td>
+        </tr>
+
+        <!-- Edit Job Section -->
+
+        <tr id="edit-row-{{ job.job_id }}" class="job-edit-row" hidden>
+            <td colspan="8">
+
+                <form method="POST"
+                      action="{{ url_for('edit_job', job_id=job.job_id) }}"
+                      class="company-form job-edit-form">
+
+                    <h3 class="edit-form-heading">
+                        Edit {{ job.job_title }}
+                    </h3>
+
+                    <p>
+                        <label>Job Title</label>
+                        <input type="text" name="job_title"
+                               value="{{ job.job_title }}"
+                               maxlength="100" required>
+                    </p>
+
+                    <p>
+                        <label>Company</label>
+                        <select name="company_id" required>
+                            {% for company in companies %}
+                            <option value="{{ company.company_id }}"
+                                {% if company.company_id == job.company_id %}selected{% endif %}>
+                                {{ company.company_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </p>
+
+                    <p>
+                        <label>Job Type</label>
+                        <select name="job_type" required>
+                            <option value="Full-time" {% if job.job_type == "Full-time" %}selected{% endif %}>Full-time</option>
+                            <option value="Part-time" {% if job.job_type == "Part-time" %}selected{% endif %}>Part-time</option>
+                            <option value="Contract" {% if job.job_type == "Contract" %}selected{% endif %}>Contract</option>
+                            <option value="Internship" {% if job.job_type == "Internship" %}selected{% endif %}>Internship</option>
+                        </select>
+                    </p>
+
+                    <p>
+                        <label>Minimum Salary ($)</label>
+                        <input type="number" name="salary_min"
+                               value="{{ job.salary_min if job.salary_min is not none else '' }}"
+                               min="0">
+                    </p>
+
+                    <p>
+                        <label>Maximum Salary ($)</label>
+                        <input type="number" name="salary_max"
+                               value="{{ job.salary_max if job.salary_max is not none else '' }}"
+                               min="0">
+                    </p>
+
+                    <p>
+                        <label>Date Posted</label>
+                        <input type="date" name="date_posted"
+                               value="{{ job.date_posted.strftime('%Y-%m-%d') if job.date_posted else '' }}">
+                    </p>
+
+                    <p>
+                        <label>Job URL</label>
+                        <input type="url" name="job_url"
+                               value="{{ job.job_url or '' }}"
+                               maxlength="300">
+                    </p>
+
+                    <p class="notes-field">
+                        <label>Requirements (JSON format)</label>
+                        <textarea name="requirements">{{ job.requirements or '[]' }}</textarea>
+                    </p>
+
+                    <div class="form-submit">
+                        <button type="submit" class="btn">Save Changes</button>
+
+                        <button type="button"
+                                class="delete-btn"
+                                onclick="toggleJobEdit({{ job.job_id }})">
+                            Cancel
+                        </button>
+                    </div>
+
+                </form>
+
+            </td>
+        </tr>
+
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+
+<p>No jobs have been added yet.</p>
+
+{% endif %}
+
+<script>
+function toggleJobEdit(jobId) {
+    const editRow = document.getElementById("edit-row-" + jobId);
+    const editButton = document.getElementById("edit-button-" + jobId);
+
+    if (editRow.hidden) {
+        editRow.hidden = false;
+        editButton.textContent = "Close";
+    } else {
+        editRow.hidden = true;
+        editButton.textContent = "Edit";
+    }
+}
+</script>
+
+{% endblock %}
