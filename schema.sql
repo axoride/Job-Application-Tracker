@@ -1,4 +1,3 @@
-
 CREATE DATABASE IF NOT EXISTS job_tracker;
 USE job_tracker;
 
@@ -9,7 +8,8 @@ CREATE TABLE companies (
     website VARCHAR(200),
     city VARCHAR(50),
     state VARCHAR(50),
-    notes TEXT
+    notes TEXT,
+    INDEX idx_company_industry (industry)
 );
 
 CREATE TABLE jobs (
@@ -22,7 +22,9 @@ CREATE TABLE jobs (
     job_url VARCHAR(300),
     date_posted DATE,
     requirements JSON,
-    FOREIGN KEY (company_id) REFERENCES companies(company_id)
+    FOREIGN KEY (company_id) REFERENCES companies(company_id),
+    INDEX idx_job_title (job_title),
+    INDEX idx_company_type (company_id, job_type)
 );
 
 CREATE TABLE applications (
@@ -33,7 +35,8 @@ CREATE TABLE applications (
     resume_version VARCHAR(50),
     cover_letter_sent BOOLEAN,
     interview_data JSON,
-    FOREIGN KEY (job_id) REFERENCES jobs(job_id)
+    FOREIGN KEY (job_id) REFERENCES jobs(job_id),
+    INDEX idx_app_status (status)
 );
 
 CREATE TABLE contacts (
