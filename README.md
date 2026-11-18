@@ -30,7 +30,7 @@ It uses Python/Flask, MySQL, and HTML/CSS, and includes a skills-based Job Match
 
 4. **Activate the virtual environment:**
    ```
-   .\venv\Scripts\Activate.ps1
+   .\.venv\Scripts\Activate.ps1
    ```
    // once activated, you should see (.venv) at the beginning of your powershell command line.
 
